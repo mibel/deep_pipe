@@ -21,7 +21,7 @@ def volumetric_batch_norm(t, momentum=0.9, center=True, scale=True,
 
             t = tf.reshape(t, (shape[0], 1, -1, n_chans))
             t = slim.batch_norm(t, scale=scale, center=center, decay=momentum,
-                                data_format='NHWС', fused=True,
+                                data_format='NHWC', fused=True,
                                 is_training=training,
                                 scope='fused_batcn_norm_slim')
         else:
