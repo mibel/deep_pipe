@@ -131,7 +131,9 @@ def get_stats_and_dices(model_controller, get_pred_and_true, sum_probs,
         x.append(data_loader.load_mscan(patient))
         y.append(data_loader.load_segm(patient))
 
-
+    preds = []
+    truth = []
+    
     print('Starting prediction', flush=True)
     dices = []
     stats_pred, stats_true = [], []
@@ -143,6 +145,8 @@ def get_stats_and_dices(model_controller, get_pred_and_true, sum_probs,
         stats_pred.append(msegm_pred.sum(axis=(1, 2, 3)))
         stats_true.append(msegm_true.sum(axis=(1, 2, 3)))
 
+        preds.append(msegm_pred)
+        truth.append(msegm_true)
         dices.append(compute_dices_msegm(msegm_pred, msegm_true))
 
-    return np.array(stats_pred), np.array(stats_true), np.array(dices)
+    return np.array(stats_pred), np.array(stats_true), np.array(dices), np.array(preds), np.array(truth), x
