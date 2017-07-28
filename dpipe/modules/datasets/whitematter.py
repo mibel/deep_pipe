@@ -50,12 +50,12 @@ class WhiteMatterHyperintensity(Dataset):
                 image = os.path.join(path_to_modalities, modalities)
                 x = nib.load(image).get_data().astype('float32')
                 x = self._reshape_to(x, new_shape=self.spatial_size)
-                if modalities == 'FLAIR.nii.gz':
-                    mask = nib.load(os.path.join(path_to_modalities,
-                                                 '/pre/brainmask_T1_mask.nii.gz')
-                                    ).get_data()
-                    mask = self._reshape_to(mask, new_shape=self.spatial_size)
-                    x[mask == 0] = 0
+                #if modalities == 'FLAIR.nii.gz':
+                #    mask = nib.load(os.path.join(path_to_modalities,
+                #                                 '/pre/brainmask_T1_mask.nii.gz')
+                #                    ).get_data()
+                #    mask = self._reshape_to(mask, new_shape=self.spatial_size)
+                #    x[mask == 0] = 0
                 img_std = x.std()
                 x = x / img_std
                 res.append(x)
