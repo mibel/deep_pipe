@@ -15,7 +15,7 @@ class WhiteMatterHyperintensity(Dataset):
     def _get_idx_to_paths(self, path):
         idx_paths = {}
         for path_, dirs, files in os.walk(path):
-            if 'orig' in dirs and 'pre' in dirs:
+            if 'pre' in dirs:
                 idx = path_.split('/')[-1]
                 idx_paths[idx] = path_
         return idx_paths
@@ -50,10 +50,12 @@ class WhiteMatterHyperintensity(Dataset):
                 image = os.path.join(path_to_modalities, modalities)
                 x = nib.load(image).get_data().astype('float32')
                 x = self._reshape_to(x, new_shape=self.spatial_size)
-                # if modalities == 'FLAIR.nii.gz':
-                #     mask = nib.load(path_to_brainmask).get_data()
-                #     mask = self._reshape_to(mask, new_shape=self.spatial_size)
-                #     x[mask==0] = 0
+                if modalities == 'FLAIR.nii.gz':
+                    mask = nib.load(os.path.join(path_to_modalities,
+                                                 '/pre/brainmask_T1_mask.nii.gz')
+                                    ).get_data()
+                    mask = self._reshape_to(mask, new_shape=self.spatial_size)
+                    x[mask == 0] = 0
                 img_std = x.std()
                 x = x / img_std
                 res.append(x)
@@ -67,7 +69,7 @@ class WhiteMatterHyperintensity(Dataset):
         return np.array(x, dtype=bool)
 
     def load_msegm(self, patient_id):
-        return self.load_segm(patient_id)[None]
+        return self.load_segm(patient_id)[np.newaxis]
 
     def load_x(self, patient_id):
         return self.load_mscan(patient_id)

@@ -18,6 +18,7 @@ dataset_name2dataset = {
     'isles_spes_augmented_penumbra': spes_factory(
         'augmented_spes_penumbra.csv'),
     'wmhs': WhiteMatterHyperintensity,
+    'wmhs_pre': WhiteMatterHyperintensity,
 }
 
 _isles_path = {'data_path': '/nmnt/x04-hdd/ISLES/'}
@@ -38,5 +39,6 @@ dataset_name2default_params = {
     'isles_spes_augmented_core': _isles_path,
     'isles_spes_augmented_penumbra': _isles_path,
 
-    'wmhs': {'data_path': '/nmnt/x01-ssd/MICCAI_WMHS/'},
+    'wmhs': {'data_path': '/nmnt/x05-ssd/MICCAI_WMHS/'},
+    'wmhs_pre': {'data_path': '/nmnt/x05-ssd/PREPR_MICCAI_WMHS/'},
 }

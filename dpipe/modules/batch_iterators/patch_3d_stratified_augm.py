@@ -105,20 +105,20 @@ def make_3d_augm_patch_stratified_iter(
         """
         scipy.random.seed()
 
-        # scale = np.random.normal(1, 0.1, size=3)
+        scale = np.random.normal(1, 0.1, size=3)
         alpha, theta = np.random.normal(0, 9, size=2)
         alpha = 0
 
         for i in range(1, len(x.shape) - 1):
-            if np.random.binomial(1, .5):
+            if np.random.binomial(1, .4):
                 x = np.flip(x, -i)
                 y = np.flip(y, -i)
 
         # x = np.array([_scale_crop(i) for i in x])
         # y = _scale_crop(y[0])[np.newaxis]
 
-        x = _rotate(x, 3, theta, alpha)
-        y = _rotate(y, 0, theta, alpha)
+        # x = _rotate(x, 3, theta, alpha)
+        # y = _rotate(y, 0, theta, alpha)
 
         #     if np.random.binomial(1, .5):
         #         t = np.random.choice([-90, 0, 90])
@@ -126,7 +126,8 @@ def make_3d_augm_patch_stratified_iter(
         #         x = _rotate(x, 3, t, a)
         #         y = _rotate(y, 3, t, a)
 
-        x = np.array([i * np.random.normal(1, 0.35) for i in x])
+        tmp = np.random.normal(1, 0.2)
+        x = np.array([i * tmp for i in x])
         return x, y
 
 
@@ -159,9 +160,9 @@ def make_3d_augm_patch_stratified_iter(
         pdp.LambdaTransformer(extract_big_patch,
                               n_workers=8, buffer_size=batch_size),
         pdp.LambdaTransformer(augmentation, n_workers=8,
-                              buffer_size=0),
+                              buffer_size=batch_size),
         pdp.LambdaTransformer(extract_patch, n_workers=8,
                               buffer_size=batch_size),
         pdp.Chunker(chunk_size=batch_size, buffer_size=3),
-        pdp.LambdaTransformer(combine_batch, buffer_size=buffer_size)
+        pdp.LambdaTransformer(combine_batch, buffer_size=1)
     )
