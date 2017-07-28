@@ -1,7 +1,7 @@
 {
   "n_iters_per_epoch": 100,
   "experiment": "msegm_predict",
-  "dataset": "wmhs_pre",
+  "dataset": "wmhs",
   "dataset_cached": true,
   "dataset_task": "msegm",
   "split": "cv_111",
