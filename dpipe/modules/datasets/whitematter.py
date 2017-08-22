@@ -20,6 +20,44 @@ class WhiteMatterHyperintensity(Dataset):
                 idx_paths[idx] = path_
         return idx_paths
 
+    def _get_quantile_img(self, img, q=95):
+        a = np.zeros_like(img)
+        a += np.percentile(img, q=q) / 2000
+        return a
+
+    def hist_match(self, source, template):
+        oldshape = source.shape
+        source = source.ravel()
+        template = template.ravel()
+        oldlen = len(source)
+        nonzero_ids = []
+        for i in range(len(source)):
+            if source[i] > 0: nonzero_ids.append(i)
+
+        template = template[template > 0]
+        source = source[source > 0]
+
+        s_values, bin_idx, s_counts = np.unique(source, return_inverse=True,
+                                                return_counts=True)
+        t_values, t_counts = np.unique(template, return_counts=True)
+
+        s_quantiles = np.cumsum(s_counts).astype(np.float64)
+        s_quantiles /= s_quantiles[-1]
+
+        t_quantiles = np.cumsum(t_counts).astype(np.float64)
+        t_quantiles /= t_quantiles[-1]
+
+        interp_t_values = np.interp(s_quantiles, t_quantiles, t_values)
+        new_values = interp_t_values[bin_idx]
+
+        rescaled_source = np.zeros(oldlen)
+        j = 0
+        for i in nonzero_ids:
+            rescaled_source[i] = new_values[j]
+            j += 1
+        return rescaled_source.reshape(oldshape)
+
+
     def _reshape_to(self, tmp: np.ndarray, new_shape = None):
         """
         Reshape ND array to new shapes.
@@ -34,7 +72,7 @@ class WhiteMatterHyperintensity(Dataset):
         result : np.array
             Return np.array with shapes equal to new_shape.
          Example.
-        _ = _reshape_to(X_test[..., :80], (15, 2, 288, 288, 100))
+        _ = _reshape_to(X_test[..., :80], (15, 2, 300, 500, 100))
         """
         assert not new_shape is None
         new_diff = [((new_shape[-i] - tmp.shape[-i]) // 2,
@@ -46,26 +84,44 @@ class WhiteMatterHyperintensity(Dataset):
     def load_mscan(self, patient_id):
             path_to_modalities = self.idx_to_path[patient_id]
             res = []
-            for modalities in ['pre/FLAIR.nii.gz', 'pre/T1.nii.gz']:
+            for modalities in ['pre/FLAIR.nii.gz', 'pre/T1.nii.gz']: # reg_t1.nii.gz
                 image = os.path.join(path_to_modalities, modalities)
                 x = nib.load(image).get_data().astype('float32')
+
+                if modalities == 'pre/FLAIR.nii.gz':
+                    brain = path_to_modalities + '/pre/brainmask_T1_mask.nii.gz'
+                    mask = nib.load(brain).get_data()
+                    x[mask == 0] = 0
+
+                #if 'FLAIR' in modalities:
+                #    b = nib.load('/nmnt/x05-ssd/PREPR_MICCAI_WMHS/Sing/'
+                #                 'Singapore/57/pre/FLAIR.nii.gz').get_data()\
+                #        .astype('float32')
+                #    m = nib.load(
+                #        '/nmnt/x05-ssd/PREPR_MICCAI_WMHS/Sing/Singapore/57'
+                #        '/pre/brainmask_T1_mask.nii.gz').get_data()\
+                #        .astype('float32')
+                #    b[m==0]=0
+                #    x = self.hist_match(x, b)
+                #    print ('matched! stripped! ')
+
                 x = self._reshape_to(x, new_shape=self.spatial_size)
-                #if modalities == 'FLAIR.nii.gz':
-                #    mask = nib.load(os.path.join(path_to_modalities,
-                #                                 '/pre/brainmask_T1_mask.nii.gz')
-                #                    ).get_data()
-                #    mask = self._reshape_to(mask, new_shape=self.spatial_size)
-                #    x[mask == 0] = 0
+
                 img_std = x.std()
                 x = x / img_std
                 res.append(x)
+            # added quantiles values
+            # [res.append(self._get_quantile_img(res[0], q=q)) for q in
+            #  range(0, 105, 5)]
             return np.asarray(res)
 
     def load_segm(self, patient_id):
         path_to_modalities = self.idx_to_path[patient_id]
-        x = nib.load(os.path.join(path_to_modalities, 'wmh.nii.gz')).get_data()
+        x = nib.load(os.path.join(path_to_modalities, 'wmh.nii.gz')).get_data() # 'wmh_reg.nii.gz'
         x = self._reshape_to(x, new_shape=self.spatial_size)
-        x[x == 2] = 0
+        x[x < 0.5] = 0
+        x[np.logical_and(x >= 0.5, x < 1.5)] = 1
+        x[x >= 1.5] = 0
         return np.array(x, dtype=bool)
 
     def load_msegm(self, patient_id):

@@ -39,6 +39,13 @@ def make_3d_augm_patch_stratified_iter(
         return Patient(name, dataset.load_x(name), dataset.load_y(name))
 
     @lru_cache(maxsize=len(ids))
+    def _get_quantile_img(img, q=95):
+        a = np.zeros((9,9,9))
+        a += np.percentile(img, q=q) / 2000
+        print (a)
+        return a
+
+    @lru_cache(maxsize=len(ids))
     def find_cancer(patient: Patient):
         if patient.y.ndim == 4:
             mask = np.any(patient.y, axis=0)
@@ -50,7 +57,7 @@ def make_3d_augm_patch_stratified_iter(
         conditional_centre_indices = medim.patch.get_conditional_center_indices(
             mask, patch_size=y_patch_size, spatial_dims=spatial_dims)
 
-        return patient.x, patient.y, conditional_centre_indices
+        return patient.x, patient.y, conditional_centre_indices,
 
     @pdp.pack_args
     def extract_big_patch(x, y, conditional_center_indices):
@@ -71,9 +78,11 @@ def make_3d_augm_patch_stratified_iter(
             y, center_idx=center_idx, patch_size=y_patch_size,
             spatial_dims=spatial_dims)
 
-        return (xs, y)
+        vals = [list(_get_quantile_img(x, q=i))
+                for i in range(0, 105, 5)]
+        return (xs, y, vals)
 
-    def _scale_crop(x):
+    def _scale_crop(x, scale):
         shape = np.array(x.shape)
         x = zoom(x, scale, order=0)
         new_shape = np.array(x.shape)
@@ -114,8 +123,8 @@ def make_3d_augm_patch_stratified_iter(
                 x = np.flip(x, -i)
                 y = np.flip(y, -i)
 
-        # x = np.array([_scale_crop(i) for i in x])
-        # y = _scale_crop(y[0])[np.newaxis]
+        # x = np.array([_scale_crop(i, scale) for i in x])
+        # y = _scale_crop(y[0], scale)[np.newaxis]
 
         # x = _rotate(x, 3, theta, alpha)
         # y = _rotate(y, 0, theta, alpha)
@@ -126,17 +135,16 @@ def make_3d_augm_patch_stratified_iter(
         #         x = _rotate(x, 3, t, a)
         #         y = _rotate(y, 3, t, a)
 
-        tmp = np.random.normal(1, 0.2)
+        tmp = np.random.normal(1, 0.3)
         x = np.array([i * tmp for i in x])
         return x, y
 
+    @pdp.pack_args
+    def augmentation(x_big, y, vals):
+        return augment(x_big, y), vals
 
     @pdp.pack_args
-    def augmentation(x_big, y):
-        return augment(x_big, y)
-
-    @pdp.pack_args
-    def extract_patch(x_big, y):
+    def extract_patch(x_big, y, vals):
 
         center_idx = np.array(x_big.shape)[spatial_dims] // 2 + np.array(
             x_big.shape)[spatial_dims] % 2
@@ -144,14 +152,20 @@ def make_3d_augm_patch_stratified_iter(
         xs = [x_big] + [medim.patch.extract_patch(
             x_big, center_idx=center_idx, spatial_dims=spatial_dims,
             patch_size=patch_size)
-            for patch_size in x_patch_sizes[1:]]
+            for patch_size in x_patch_sizes[1:]] + [vals]
 
-        # y = medim.patch.extract_patch(
-        #     y, center_idx=center_idx, patch_size=y_patch_size,
-        #     spatial_dims=spatial_dims)
+        return (xs, y)
 
-        return (*xs, y)
-
+    def _get_quantile_img(img, q=95):
+        a = np.zeros((9,9,9))
+        a += np.percentile(img, q=q) / 2000
+        return a
+    
+    
+    @pdp.pack_args
+    def extract_3_tens(x, y):
+        print(np.array(x).shape)
+        return (*x, y, )
 
     return pdp.Pipeline(
         pdp.Source(random_seq, buffer_size=3),
@@ -159,9 +173,11 @@ def make_3d_augm_patch_stratified_iter(
         pdp.LambdaTransformer(find_cancer, n_workers=8, buffer_size=3),
         pdp.LambdaTransformer(extract_big_patch,
                               n_workers=8, buffer_size=batch_size),
-        pdp.LambdaTransformer(augmentation, n_workers=8,
-                              buffer_size=batch_size),
+        # pdp.LambdaTransformer(augmentation, n_workers=8,
+        #                       buffer_size=batch_size),
         pdp.LambdaTransformer(extract_patch, n_workers=8,
+                              buffer_size=batch_size),
+        pdp.LambdaTransformer(extract_3_tens, n_workers=2,
                               buffer_size=batch_size),
         pdp.Chunker(chunk_size=batch_size, buffer_size=3),
         pdp.LambdaTransformer(combine_batch, buffer_size=1)

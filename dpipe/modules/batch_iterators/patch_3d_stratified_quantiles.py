@@ -32,6 +32,16 @@ def make_3d_patch_stratified_iter(
         return Patient(name, dataset.load_x(name), dataset.load_y(name))
 
     @lru_cache(maxsize=len(ids))
+    def get_quantiles(patient):
+        return [extract_quantiles(patient.x, q=i) for i in np.linspace(0, 100, 21)]
+    
+    def extract_quantiles(img, q):
+        a = np.zeros((9,9,9))
+        a += np.percentile(img[0], q=q) / 2000
+        print (a.shape)
+        return a
+
+    @lru_cache(maxsize=len(ids))
     def find_cancer(patient: Patient):
         if patient.y.ndim == 4:
             mask = np.any(patient.y, axis=0)
@@ -43,11 +53,13 @@ def make_3d_patch_stratified_iter(
         conditional_centre_indices = medim.patch.get_conditional_center_indices(
             mask, patch_size=y_patch_size, spatial_dims=spatial_dims)
 
-        return patient.x, patient.y, conditional_centre_indices
+        return patient, conditional_centre_indices
 
 
     @pdp.pack_args
-    def extract_patch(x, y, conditional_center_indices):
+    def extract_patch(patient, conditional_center_indices):
+        x = patient.x
+        y = patient.y
         cancer_type = np.random.choice(
             [True, False], p=[nonzero_fraction, 1 - nonzero_fraction])
         if cancer_type:
@@ -65,7 +77,9 @@ def make_3d_patch_stratified_iter(
         y = medim.patch.extract_patch(
             y, center_idx=center_idx, patch_size=y_patch_size,
             spatial_dims=spatial_dims)
-
+        
+        x_qntl = get_quantiles(patient)
+        xs = xs + x_qntl
         return (*xs, y)
 
     return pdp.Pipeline(
