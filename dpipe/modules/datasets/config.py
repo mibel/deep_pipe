@@ -39,6 +39,6 @@ dataset_name2default_params = {
     'isles_spes_augmented_core': _isles_path,
     'isles_spes_augmented_penumbra': _isles_path,
 
-    'wmhs': {'data_path': '/nmnt/x05-ssd/MICCAI_WMHS/'},
+    'wmhs': {'data_path': '/cobrain/groups/ml_group/data/MICCAI_WMHS'},
     'wmhs_pre': {'data_path': '/nmnt/x05-ssd/PREPR_MICCAI_WMHS/'},
 }
