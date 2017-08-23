@@ -94,7 +94,7 @@ class DeepMedicOrig(ModelCore):
 
         self.kernel_size = 3
         self.n_parts = np.array(n_parts)
-        assert np.all((self.n_parts == 1) | (self.n_parts == 2))
+        assert np.all((self.n_parts == 1) | (self.n_parts == 2) | (self.n_parts == 4) )
 
     def build(self, training_ph):
         nan = None

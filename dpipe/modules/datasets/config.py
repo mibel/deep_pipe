@@ -1,6 +1,8 @@
 from .brats import Brats2015, Brats2017
 from .isles import *
 from .whitematter import WhiteMatterHyperintensity
+from .whitematter_hist import WhiteMatterHyperintensity as WhiteMatterHyperintensityHist
+from .whitematter_resampling import WhiteMatterHyperintensity as WhiteMatterHyperintensityResampling
 
 dataset_name2dataset = {
     'brats2015': Brats2015,
@@ -19,6 +21,8 @@ dataset_name2dataset = {
         'augmented_spes_penumbra.csv'),
     'wmhs': WhiteMatterHyperintensity,
     'wmhs_pre': WhiteMatterHyperintensity,
+    'wmhs_hist': WhiteMatterHyperintensityHist,
+    'wmhs_resampling': WhiteMatterHyperintensityResampling,
 }
 
 _isles_path = {'data_path': '/nmnt/x04-hdd/ISLES/'}
@@ -41,4 +45,6 @@ dataset_name2default_params = {
 
     'wmhs': {'data_path': '/cobrain/groups/ml_group/data/MICCAI_WMHS'},
     'wmhs_pre': {'data_path': '/nmnt/x05-ssd/PREPR_MICCAI_WMHS/'},
+    'wmhs_hist': {'data_path': '/nmnt/x05-ssd/PREPR_MICCAI_WMHS/'},
+    'wmhs_resampling': {'data_path': '/nmnt/x05-ssd/RESAMPLED_MICCAI_WMHS/'},
 }

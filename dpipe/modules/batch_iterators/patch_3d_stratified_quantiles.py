@@ -19,7 +19,7 @@ class Patient:
         return hash(self.patient_id)
 
 
-def make_3d_patch_stratified_iter(
+def make_3d_quantiles_patch_stratified_iter(
         ids, dataset: Dataset, *, batch_size, x_patch_sizes, y_patch_size,
         nonzero_fraction, buffer_size=10):
     x_patch_sizes = [np.array(x_patch_size) for x_patch_size in x_patch_sizes]
@@ -33,7 +33,7 @@ def make_3d_patch_stratified_iter(
 
     @lru_cache(maxsize=len(ids))
     def get_quantiles(patient):
-        return [extract_quantiles(patient.x, q=i) for i in np.linspace(0, 100, 21)]
+        return [[extract_quantiles(patient.x, q=i) for i in np.linspace(0, 100, 21)]]
     
     def extract_quantiles(img, q):
         a = np.zeros((9,9,9))
@@ -80,6 +80,7 @@ def make_3d_patch_stratified_iter(
         
         x_qntl = get_quantiles(patient)
         xs = xs + x_qntl
+        print(len(x_qntl), len(x_qntl[0]), len(x_qntl[0][0]))
         return (*xs, y)
 
     return pdp.Pipeline(
